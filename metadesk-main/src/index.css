@@ -1,0 +1,271 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 20% 97%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 60 100% 70%;
+    --primary-foreground: 210 40% 20%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 222 23% 18%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 60 100% 70%;
+    --sidebar-primary-foreground: 222 23% 18%;
+    --sidebar-accent: 222 14% 24%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 222 14% 30%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Liquid glass tokens */
+    --glass-bg: 0 0% 100% / 0.55;
+    --glass-border: 0 0% 100% / 0.35;
+    --glass-shadow: 220 20% 60% / 0.08;
+    --glass-highlight: 0 0% 100% / 0.7;
+    --glass-blur: 20px;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .scrollbar-hidden::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .scrollbar-hidden {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .status-dot {
+    @apply w-2 h-2 rounded-full;
+  }
+  
+  .status-online {
+    @apply bg-metadesk-green;
+  }
+  
+  .status-offline {
+    @apply bg-gray-400;
+  }
+  
+  .status-away {
+    @apply bg-yellow-400;
+  }
+  
+  .status-busy {
+    @apply bg-red-500;
+  }
+}
+
+@layer components {
+  /* ── Liquid Glass Card ── */
+  .glass-card {
+    background: hsla(var(--glass-bg));
+    backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
+    border: 1px solid hsla(var(--glass-border));
+    box-shadow:
+      0 1px 2px hsla(var(--glass-shadow)),
+      0 8px 24px hsla(var(--glass-shadow)),
+      inset 0 1px 0 hsla(var(--glass-highlight));
+    transition: box-shadow 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
+  }
+
+  .glass-card:hover {
+    box-shadow:
+      0 2px 4px hsla(var(--glass-shadow)),
+      0 12px 32px hsla(220 20% 50% / 0.12),
+      inset 0 1px 0 hsla(var(--glass-highlight));
+    border-color: hsla(0 0% 100% / 0.5);
+  }
+
+  /* ── KPI glass variant with subtle glow ── */
+  .glass-kpi {
+    background: hsla(0 0% 100% / 0.6);
+    backdrop-filter: blur(24px) saturate(1.6);
+    -webkit-backdrop-filter: blur(24px) saturate(1.6);
+    border: 1px solid hsla(0 0% 100% / 0.4);
+    box-shadow:
+      0 0 0 1px hsla(0 0% 100% / 0.1),
+      0 4px 16px hsla(220 20% 60% / 0.06),
+      0 8px 32px hsla(220 20% 60% / 0.04),
+      inset 0 1px 0 hsla(0 0% 100% / 0.8);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .glass-kpi:hover {
+    transform: translateY(-1px);
+    box-shadow:
+      0 0 0 1px hsla(0 0% 100% / 0.2),
+      0 8px 24px hsla(220 20% 50% / 0.1),
+      0 16px 48px hsla(220 20% 50% / 0.06),
+      inset 0 1px 0 hsla(0 0% 100% / 0.9);
+  }
+
+  /* ── Filter bar glass ── */
+  .glass-filter {
+    background: hsla(0 0% 100% / 0.45);
+    backdrop-filter: blur(16px) saturate(1.3);
+    -webkit-backdrop-filter: blur(16px) saturate(1.3);
+    border: 1px solid hsla(0 0% 100% / 0.3);
+    box-shadow:
+      0 1px 3px hsla(220 20% 60% / 0.05),
+      inset 0 1px 0 hsla(0 0% 100% / 0.6);
+  }
+
+  /* ── Work client theme overrides ── */
+  .work-theme .bg-gradient-to-r.from-emerald-600 {
+    background: linear-gradient(to right, #1a8fc4, #28A8E0) !important;
+  }
+  .work-theme .bg-emerald-600 {
+    background-color: #28A8E0 !important;
+  }
+  .work-theme .hover\:bg-emerald-700:hover {
+    background-color: #1a8fc4 !important;
+  }
+  .work-theme .border-emerald-200 {
+    border-color: rgba(40, 168, 224, 0.3) !important;
+  }
+  .work-theme .hover\:bg-emerald-50:hover {
+    background-color: rgba(40, 168, 224, 0.1) !important;
+  }
+  .work-theme .hover\:border-emerald-400:hover {
+    border-color: rgba(40, 168, 224, 0.5) !important;
+  }
+  .work-theme .bg-emerald-600.text-white {
+    background-color: #28A8E0 !important;
+  }
+  .work-theme .bg-slate-50 {
+    background-color: #111318 !important;
+  }
+  .work-theme .bg-white.border.border-slate-200 {
+    background-color: #1a1e2e !important;
+    border-color: rgba(255,255,255,0.08) !important;
+  }
+  .work-theme .bg-white.p-3 {
+    background-color: #161922 !important;
+  }
+  .work-theme .bg-white.border.border-slate-200 p {
+    color: #cbd5e1 !important;
+  }
+
+  /* ── Work theme: StepConfirmation & SuccessScreen ── */
+  .work-theme .bg-muted\/50,
+  .work-theme .bg-muted {
+    background-color: rgba(255, 255, 255, 0.06) !important;
+  }
+  .work-theme .text-foreground {
+    color: #e2e8f0 !important;
+  }
+  .work-theme .text-muted-foreground {
+    color: #94a3b8 !important;
+  }
+  .work-theme .text-black {
+    color: #f1f5f9 !important;
+  }
+  .work-theme .border-b {
+    border-color: rgba(255, 255, 255, 0.08) !important;
+  }
+
+  /* ── Work theme: success screen icon ── */
+  .work-theme .from-emerald-100 {
+    --tw-gradient-from: rgba(40, 168, 224, 0.15) !important;
+  }
+  .work-theme .to-green-50 {
+    --tw-gradient-to: rgba(40, 168, 224, 0.05) !important;
+  }
+
+  /* ── Work theme: Chatbot / Chat assistido ── */
+  .work-theme .bg-slate-50 {
+    background-color: #111318 !important;
+  }
+  .work-theme .bg-white {
+    background-color: #1a1e2e !important;
+  }
+  .work-theme .bg-white.border.border-slate-200,
+  .work-theme .border-slate-200 {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+  }
+  .work-theme .bg-slate-200 {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+  }
+  .work-theme .text-slate-600 {
+    color: #94a3b8 !important;
+  }
+  .work-theme .text-slate-500 {
+    color: #64748b !important;
+  }
+  .work-theme .bg-slate-400 {
+    background-color: #64748b !important;
+  }
+  .work-theme .text-sm.text-muted-foreground {
+    color: #94a3b8 !important;
+  }
+  .work-theme .border-t.bg-white {
+    background-color: #161922 !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+  }
+
+  /* ── Work theme: NPS Survey inside chat ── */
+  .work-theme .bg-white.p-3 {
+    background-color: #161922 !important;
+  }
+
+  /* ── Work theme: Separator ── */
+  .work-theme [data-orientation="horizontal"] {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+  }
+
+  /* ── Work theme: buttons outline ── */
+  .work-theme .border-blue-200 {
+    border-color: rgba(40, 168, 224, 0.3) !important;
+  }
+  .work-theme .hover\:bg-blue-50:hover {
+    background-color: rgba(40, 168, 224, 0.1) !important;
+  }
+  .work-theme .hover\:border-blue-400:hover {
+    border-color: rgba(40, 168, 224, 0.5) !important;
+  }
+  .work-theme .text-blue-700 {
+    color: #28A8E0 !important;
+  }
+}

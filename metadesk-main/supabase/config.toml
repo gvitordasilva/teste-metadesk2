@@ -1,0 +1,39 @@
+project_id = "udyjlesjcgxhgdiaptjp"
+
+# Public-facing functions (no JWT required)
+[functions.send-complaint-email]
+verify_jwt = false
+
+[functions.chatbot-public]
+verify_jwt = false
+
+[functions.chatbot-interpret]
+verify_jwt = false
+
+[functions.elevenlabs-conversation-token]
+verify_jwt = false
+
+# External webhooks (no JWT)
+[functions.whatsapp-webhook]
+verify_jwt = false
+
+[functions.voice-agent-tools]
+verify_jwt = false
+
+[functions.send-workflow-email]
+verify_jwt = false
+
+[functions.poll-email-replies]
+verify_jwt = false
+
+[functions.twilio-voice-webhook]
+verify_jwt = false
+
+[functions.twilio-dequeue]
+verify_jwt = false
+
+[functions.twilio-token]
+verify_jwt = false
+
+[functions.csat-sms]
+verify_jwt = false
