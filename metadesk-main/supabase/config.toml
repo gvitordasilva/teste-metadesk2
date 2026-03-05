@@ -1,4 +1,4 @@
-project_id = "udyjlesjcgxhgdiaptjp"
+project_id = "buoxdukdasgjnwssrewy"
 
 # Public-facing functions (no JWT required)
 [functions.send-complaint-email]
@@ -15,6 +15,9 @@ verify_jwt = false
 
 # External webhooks (no JWT)
 [functions.whatsapp-webhook]
+verify_jwt = false
+
+[functions.whatsapp-send]
 verify_jwt = false
 
 [functions.voice-agent-tools]

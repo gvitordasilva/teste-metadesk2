@@ -348,7 +348,7 @@ export function ConversationView({
         sessionId = newSession.id;
       }
 
-      // Insert the message
+      // Insert the message in local DB
       const { error: msgError } = await supabase
         .from("service_messages")
         .insert({
@@ -371,6 +371,31 @@ export function ConversationView({
           status: "in_progress",
         })
         .eq("id", conversationId);
+
+      // If WhatsApp channel, send via Evolution API
+      if (queueItem?.channel === "whatsapp") {
+        const whatsappConvId = (queueItem as any).whatsapp_conversation_id;
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data: agentProfile } = await supabase
+          .from("attendant_profiles")
+          .select("full_name")
+          .eq("user_id", user?.id)
+          .maybeSingle();
+
+        const { error: waError } = await supabase.functions.invoke("whatsapp-send", {
+          body: {
+            conversationId: whatsappConvId || undefined,
+            phoneNumber: !whatsappConvId ? queueItem.customer_phone : undefined,
+            text: content,
+            agentName: (agentProfile as any)?.full_name || "Atendente",
+          },
+        });
+
+        if (waError) {
+          console.error("Error sending WhatsApp message:", waError);
+          toast.error("Mensagem salva, mas falha ao enviar via WhatsApp.");
+        }
+      }
 
       // Optimistically add to local state (realtime will also fire)
       setMessages(prev => [...prev, {

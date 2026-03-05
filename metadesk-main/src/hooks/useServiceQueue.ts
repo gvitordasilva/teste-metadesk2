@@ -19,6 +19,7 @@ export type ServiceQueueItem = {
   unread_count: number;
   complaint_id: string | null;
   voice_session_id: string | null;
+  whatsapp_conversation_id: string | null;
   assigned_to: string | null;
   waiting_since: string;
   created_at: string;
