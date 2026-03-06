@@ -84,31 +84,12 @@ Deno.serve(async (req) => {
     const result = await response.json();
     console.log("Message sent successfully:", result);
 
-    // Save message to database if conversationId provided
+    // Update conversation last_message_at (message is already saved by the frontend)
     if (body.conversationId) {
-      await supabase.from("service_messages").insert({
-        conversation_id: body.conversationId,
-        channel: "whatsapp",
-        sender_type: "agent",
-        sender_name: body.agentName || "Atendente",
-        content: body.text,
-        metadata: { evolution_response: result },
-      });
-
-      // Update conversation last message
       await supabase
         .from("whatsapp_conversations")
         .update({ last_message_at: new Date().toISOString() })
         .eq("id", body.conversationId);
-
-      // Update service queue last message
-      await supabase
-        .from("service_queue")
-        .update({ 
-          last_message: body.text,
-          updated_at: new Date().toISOString()
-        })
-        .eq("whatsapp_conversation_id", body.conversationId);
     }
 
     return new Response(

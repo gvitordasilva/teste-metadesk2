@@ -106,18 +106,71 @@ export function ConversationView({
   const [pendingFile, setPendingFile] = useState<{ file: File; previewUrl: string | null } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Stable ref so realtime callbacks always see the current whatsapp conversation id
+  const whatsappConvIdRef = useRef<string | null>(null);
 
   // Get queue item data for customer info
   const { data: queueItems = [] } = useServiceQueue({ excludeCompleted: true });
   const queueItem = queueItems.find(item => item.id === conversationId);
 
+  // Keep ref up-to-date so realtime callbacks can read it without stale closure issues
+  useEffect(() => {
+    whatsappConvIdRef.current = queueItem?.whatsapp_conversation_id ?? null;
+  }, [queueItem?.whatsapp_conversation_id]);
+
+  const toEntry = (m: any): TimelineEntry => ({
+    id: m.id,
+    content: m.content,
+    sender_type: m.sender_type as TimelineEntry["sender_type"],
+    created_at: m.created_at,
+  });
+
   // Load messages for this conversation
   const loadMessages = useCallback(async () => {
     if (!conversationId) return;
-    
+
     try {
-      // Try loading from service_messages using conversation_id reference
-      // Messages are stored with session_id pointing to either a service_session or queue item
+      const whatsappConvId = queueItem?.whatsapp_conversation_id;
+
+      // For WhatsApp conversations: load all messages by whatsapp_conversations.id
+      if (whatsappConvId) {
+        const { data: waMsgs } = await supabase
+          .from("service_messages")
+          .select("*")
+          .eq("conversation_id", whatsappConvId)
+          .order("created_at", { ascending: true });
+
+        // Also load agent messages stored with session_id (outgoing messages from this queue item)
+        const { data: sessionData } = await supabase
+          .from("service_sessions")
+          .select("id")
+          .eq("conversation_id", conversationId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        const sessionMsgs = sessionData?.id
+          ? (await supabase
+              .from("service_messages")
+              .select("*")
+              .eq("session_id", sessionData.id)
+              .order("created_at", { ascending: true })
+            ).data ?? []
+          : [];
+
+        // Merge and deduplicate by id, sort by time
+        const allMsgs = [...(waMsgs ?? []), ...sessionMsgs];
+        const seen = new Set<string>();
+        const merged = allMsgs
+          .filter(m => { if (seen.has(m.id)) return false; seen.add(m.id); return true; })
+          .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+        setMessages(merged.map(toEntry));
+        setIsLoadingMessages(false);
+        return;
+      }
+
+      // For non-WhatsApp: load via service_sessions
       const { data: sessionData } = await supabase
         .from("service_sessions")
         .select("id")
@@ -132,45 +185,29 @@ export function ConversationView({
           .select("*")
           .eq("session_id", sessionData.id)
           .order("created_at", { ascending: true });
-        
+
         if (msgs && msgs.length > 0) {
-          setMessages(msgs.map(m => ({
-            id: m.id,
-            content: m.content,
-            sender_type: m.sender_type as TimelineEntry["sender_type"],
-            created_at: m.created_at,
-          })));
+          setMessages(msgs.map(toEntry));
           setIsLoadingMessages(false);
           return;
         }
       }
 
-      // Fallback: check if there's a complaint with chat history in the metadata
-      // or load messages linked directly to this queue item ID as session_id
-      // (from the chatbot transfer flow)
+      // Fallback: messages linked directly to queue item id as session_id
       const { data: directMsgs } = await supabase
         .from("service_messages")
         .select("*")
         .eq("session_id", conversationId)
         .order("created_at", { ascending: true });
 
-      if (directMsgs && directMsgs.length > 0) {
-        setMessages(directMsgs.map(m => ({
-          id: m.id,
-          content: m.content,
-          sender_type: m.sender_type as TimelineEntry["sender_type"],
-          created_at: m.created_at,
-        })));
-      } else {
-        setMessages([]);
-      }
+      setMessages((directMsgs ?? []).map(toEntry));
     } catch (error) {
       console.error("Error loading messages:", error);
       setMessages([]);
     } finally {
       setIsLoadingMessages(false);
     }
-  }, [conversationId]);
+  }, [conversationId, queueItem?.whatsapp_conversation_id]);
 
   // Load audit log events for linked complaint
   const loadAuditEvents = useCallback(async () => {
@@ -226,31 +263,60 @@ export function ConversationView({
 
     const channels: ReturnType<typeof supabase.channel>[] = [];
 
-    // Messages channel
-    const msgChannel = supabase
-      .channel(`messages-${conversationId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "service_messages",
-        },
-        (payload) => {
-          const newMsg = payload.new as any;
-          setMessages(prev => {
-            if (prev.some(m => m.id === newMsg.id)) return prev;
-            return [...prev, {
-              id: newMsg.id,
-              content: newMsg.content,
-              sender_type: newMsg.sender_type,
-              created_at: newMsg.created_at,
-            }];
-          });
-        }
-      )
-      .subscribe();
-    channels.push(msgChannel);
+    const addMessage = (newMsg: any) => {
+      setMessages(prev => {
+        if (prev.some(m => m.id === newMsg.id)) return prev;
+        return [...prev, {
+          id: newMsg.id,
+          content: newMsg.content,
+          sender_type: newMsg.sender_type,
+          created_at: newMsg.created_at,
+        }];
+      });
+    };
+
+    const whatsappConvId = queueItem?.whatsapp_conversation_id;
+
+    if (whatsappConvId) {
+      // WhatsApp: subscribe only to messages for this specific whatsapp conversation
+      const waChannel = supabase
+        .channel(`wa-messages-${whatsappConvId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "service_messages",
+            filter: `conversation_id=eq.${whatsappConvId}`,
+          },
+          (payload) => addMessage(payload.new)
+        )
+        .subscribe();
+      channels.push(waChannel);
+    } else {
+      // Non-WhatsApp: subscribe to all inserts, guard by checking no cross-conversation leakage
+      const msgChannel = supabase
+        .channel(`messages-${conversationId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "service_messages",
+          },
+          (payload) => {
+            const newMsg = payload.new as any;
+            // Ignore messages that clearly belong to another WhatsApp conversation
+            const currentWaId = whatsappConvIdRef.current;
+            if (newMsg.conversation_id && currentWaId && newMsg.conversation_id !== currentWaId) {
+              return;
+            }
+            addMessage(newMsg);
+          }
+        )
+        .subscribe();
+      channels.push(msgChannel);
+    }
 
     // Audit log channel (if complaint linked)
     if (queueItem?.complaint_id) {
@@ -291,7 +357,7 @@ export function ConversationView({
     return () => {
       channels.forEach(ch => supabase.removeChannel(ch));
     };
-  }, [conversationId, queueItem?.complaint_id]);
+  }, [conversationId, queueItem?.complaint_id, queueItem?.whatsapp_conversation_id]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -349,10 +415,13 @@ export function ConversationView({
       }
 
       // Insert the message in local DB
+      // For WhatsApp conversations, also store conversation_id so loadMessages can find it
+      const whatsappConvId = queueItem?.whatsapp_conversation_id ?? null;
       const { error: msgError } = await supabase
         .from("service_messages")
         .insert({
           session_id: sessionId,
+          conversation_id: whatsappConvId || undefined,
           sender_type: "agent",
           content,
         });

@@ -249,8 +249,26 @@ Deno.serve(async (req) => {
       })
       .eq("id", conversation.id);
 
-    // If escalated, add to service queue
-    if (response.escalated) {
+    // Update or create service queue entry
+    const { data: existingQueue } = await supabase
+      .from("service_queue")
+      .select("id, unread_count")
+      .eq("whatsapp_conversation_id", conversation.id)
+      .neq("status", "completed")
+      .maybeSingle();
+
+    if (existingQueue) {
+      // Update existing queue entry with latest message
+      await supabase
+        .from("service_queue")
+        .update({
+          last_message: messageContent,
+          unread_count: (existingQueue.unread_count || 0) + 1,
+          customer_name: customerName,
+        })
+        .eq("id", existingQueue.id);
+    } else if (response.escalated) {
+      // Only create a new queue entry when the chatbot escalates
       await supabase.from("service_queue").insert({
         channel: "whatsapp",
         status: "waiting",
