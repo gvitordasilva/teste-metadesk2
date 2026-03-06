@@ -23,8 +23,8 @@ ALTER TABLE public.whatsapp_conversations ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Anyone can manage whatsapp_conversations"
   ON public.whatsapp_conversations
   FOR ALL
-  WITH CHECK (true)
-  USING (true);
+  USING (true)
+  WITH CHECK (true);
 
 -- Trigger para updated_at
 CREATE TRIGGER update_whatsapp_conversations_updated_at
