@@ -1,17 +1,26 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:16
+  evolution-postgres:
+    container_name: evolution_postgres
+    image: postgres:15
     restart: always
-    ports:
-      - "5432:5432"
     environment:
       POSTGRES_USER: evolution
       POSTGRES_PASSWORD: evolution123
       POSTGRES_DB: evolution
+    command:
+      - postgres
+      - -c
+      - max_connections=1000
+      - -c
+      - listen_addresses=*
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - evolution-net
+    expose:
+      - "5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U evolution -d evolution"]
       interval: 5s
@@ -19,12 +28,17 @@ services:
       retries: 10
 
   redis:
-    image: redis:7-alpine
+    container_name: evolution_redis
+    image: redis:latest
     restart: always
-    ports:
-      - "6379:6379"
+    command: >
+      redis-server --port 6379 --appendonly yes
     volumes:
-      - redis_data:/data
+      - evolution_redis:/data
+    networks:
+      - evolution-net
+    expose:
+      - "6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -32,16 +46,19 @@ services:
       retries: 10
 
   evolution-api:
+    container_name: evolution_api
     image: evoapicloud/evolution-api:latest
     restart: always
     ports:
       - "8080:8080"
+    volumes:
+      - evolution_instances:/evolution/instances
     environment:
       DATABASE_PROVIDER: postgresql
-      DATABASE_CONNECTION_URI: "postgresql://evolution:evolution123@postgres:5432/evolution"
-      DATABASE_URL: "postgresql://evolution:evolution123@postgres:5432/evolution"
+      DATABASE_CONNECTION_URI: "postgresql://evolution:evolution123@evolution-postgres:5432/evolution"
+      DATABASE_URL: "postgresql://evolution:evolution123@evolution-postgres:5432/evolution"
       CACHE_REDIS_ENABLED: "true"
-      CACHE_REDIS_URI: "redis://redis:6379"
+      CACHE_REDIS_URI: "redis://evolution_redis:6379"
       CACHE_REDIS_PREFIX_KEY: "evolution"
       AUTHENTICATION_TYPE: apikey
       AUTHENTICATION_API_KEY: "minha-chave-secreta-123"
@@ -53,11 +70,30 @@ services:
       LOG_COLOR: "true"
       LOG_BAILEYS: error
     depends_on:
-      postgres:
+      evolution-postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+    networks:
+      - evolution-net
+    expose:
+      - "8080"
+
+  evolution-manager:
+    container_name: evolution_frontend
+    image: evoapicloud/evolution-manager:latest
+    restart: always
+    ports:
+      - "3000:80"
+    networks:
+      - evolution-net
 
 volumes:
   postgres_data:
-  redis_data:
+  evolution_redis:
+  evolution_instances:
+
+networks:
+  evolution-net:
+    name: evolution-net
+    driver: bridge
