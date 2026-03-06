@@ -29,14 +29,3 @@ verify_jwt = false
 [functions.poll-email-replies]
 verify_jwt = false
 
-[functions.twilio-voice-webhook]
-verify_jwt = false
-
-[functions.twilio-dequeue]
-verify_jwt = false
-
-[functions.twilio-token]
-verify_jwt = false
-
-[functions.csat-sms]
-verify_jwt = false
