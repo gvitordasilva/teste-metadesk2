@@ -1,6 +1,6 @@
 
 -- Tabela de configurações de SLA
-CREATE TABLE public.sla_settings (
+CREATE TABLE IF NOT EXISTS public.sla_settings (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   metric_key text NOT NULL UNIQUE,
   metric_label text NOT NULL,

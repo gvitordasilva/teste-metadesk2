@@ -1,5 +1,5 @@
 -- Create workflow_responsibles table
-CREATE TABLE public.workflow_responsibles (
+CREATE TABLE IF NOT EXISTS public.workflow_responsibles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   position TEXT NOT NULL,
@@ -12,7 +12,7 @@ CREATE TABLE public.workflow_responsibles (
 );
 
 -- Create workflows table
-CREATE TABLE public.workflows (
+CREATE TABLE IF NOT EXISTS public.workflows (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   description TEXT,
@@ -24,7 +24,7 @@ CREATE TABLE public.workflows (
 );
 
 -- Create workflow_steps table
-CREATE TABLE public.workflow_steps (
+CREATE TABLE IF NOT EXISTS public.workflow_steps (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   workflow_id UUID REFERENCES public.workflows(id) ON DELETE CASCADE NOT NULL,
   name TEXT NOT NULL,

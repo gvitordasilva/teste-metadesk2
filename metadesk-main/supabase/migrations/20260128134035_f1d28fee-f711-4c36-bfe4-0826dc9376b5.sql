@@ -2,7 +2,7 @@
 CREATE TYPE public.app_role AS ENUM ('admin', 'atendente');
 
 -- Criar tabela de roles (separada para segurança)
-CREATE TABLE public.user_roles (
+CREATE TABLE IF NOT EXISTS public.user_roles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
     role app_role NOT NULL DEFAULT 'atendente',
@@ -14,7 +14,7 @@ CREATE TABLE public.user_roles (
 ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
 
 -- Criar tabela de perfis de atendentes
-CREATE TABLE public.attendant_profiles (
+CREATE TABLE IF NOT EXISTS public.attendant_profiles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL UNIQUE,
     full_name TEXT NOT NULL,
