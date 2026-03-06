@@ -18,6 +18,19 @@ services:
       timeout: 5s
       retries: 10
 
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   evolution-api:
     image: atendai/evolution-api:latest
     restart: always
@@ -27,6 +40,9 @@ services:
       DATABASE_PROVIDER: postgresql
       DATABASE_CONNECTION_URI: "postgresql://evolution:evolution123@postgres:5432/evolution"
       DATABASE_URL: "postgresql://evolution:evolution123@postgres:5432/evolution"
+      CACHE_REDIS_ENABLED: "true"
+      CACHE_REDIS_URI: "redis://redis:6379"
+      CACHE_REDIS_PREFIX_KEY: "evolution"
       AUTHENTICATION_TYPE: apikey
       AUTHENTICATION_API_KEY: "minha-chave-secreta-123"
       SERVER_TYPE: http
@@ -39,6 +55,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
 
 volumes:
   postgres_data:
+  redis_data:
