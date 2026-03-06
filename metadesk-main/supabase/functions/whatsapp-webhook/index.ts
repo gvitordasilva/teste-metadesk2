@@ -141,16 +141,6 @@ Deno.serve(async (req) => {
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const EVOLUTION_API_KEY = Deno.env.get("EVOLUTION_API_KEY");
 
-    // Validate Evolution API key from header
-    const apiKey = req.headers.get("apikey");
-    if (EVOLUTION_API_KEY && apiKey !== EVOLUTION_API_KEY) {
-      console.log("Invalid API key received");
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     const payload: EvolutionWebhook = await req.json();
