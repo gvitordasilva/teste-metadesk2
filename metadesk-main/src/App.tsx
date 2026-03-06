@@ -20,11 +20,8 @@ import Administracao from "./pages/Administracao";
 import Integracoes from "./pages/Integracoes";
 import Informacoes from "./pages/Informacoes";
 import ReclamacoesDenuncias from "./pages/ReclamacoesDenuncias";
-import WorkReclamacoes from "./pages/WorkReclamacoes";
-import Ouvidoria from "./pages/Ouvidoria";
 import MeuPerfil from "./pages/MeuPerfil";
 import PublicChat from "./pages/PublicChat";
-import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,7 +39,7 @@ const App = () => (
             <Routes>
               {/* Rota pública */}
               <Route path="/login" element={<LoginPage />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/reset-password" element={<LoginPage />} />
               
               {/* Rota raiz - redireciona baseado no role */}
               <Route path="/" element={
@@ -111,12 +108,12 @@ const App = () => (
               <Route path="/reclamacoes-denuncias" element={<ReclamacoesDenuncias />} />
               
               {/* Rota pública Work - Canal de Denúncias (legacy) */}
-              <Route path="/ouvidoria-work8" element={<WorkReclamacoes />} />
+              <Route path="/ouvidoria-work8" element={<ReclamacoesDenuncias />} />
 
               {/* Rota dinâmica de ouvidoria por tenant */}
-              <Route path="/ouvidoria/:slug" element={<Ouvidoria />} />
-              <Route path="/ouvidoria" element={<Ouvidoria />} />
-              
+              <Route path="/ouvidoria/:slug" element={<ReclamacoesDenuncias />} />
+              <Route path="/ouvidoria" element={<ReclamacoesDenuncias />} />
+
               {/* Rota pública para webchat */}
               <Route path="/chat/:flowId" element={<PublicChat />} />
               
