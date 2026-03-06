@@ -3,7 +3,7 @@ version: '3.8'
 services:
   evolution-postgres:
     container_name: evolution_postgres
-    image: postgres:15
+    image: postgres:16
     restart: always
     environment:
       POSTGRES_USER: evolution
