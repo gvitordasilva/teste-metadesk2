@@ -16,14 +16,16 @@ $$;
 -- Função para verificar se o usuário atual é admin
 CREATE OR REPLACE FUNCTION public.check_admin_access()
 RETURNS BOOLEAN
-LANGUAGE SQL
+LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
 SET search_path = public
 AS $$
-  SELECT EXISTS (
+BEGIN
+  RETURN EXISTS (
     SELECT 1 FROM public.user_roles
     WHERE user_id = auth.uid()
     AND role = 'admin'
-  )
+  );
+END;
 $$;
