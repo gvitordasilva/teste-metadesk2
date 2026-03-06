@@ -20,6 +20,15 @@ interface EvolutionWebhook {
     message?: {
       conversation?: string;
       extendedTextMessage?: { text: string };
+      listResponseMessage?: {
+        title?: string;
+        listType?: number;
+        singleSelectReply?: { selectedRowId: string };
+      };
+      buttonsResponseMessage?: {
+        selectedButtonId?: string;
+        selectedDisplayText?: string;
+      };
     };
     messageType?: string;
     messageTimestamp?: number;
@@ -46,6 +55,28 @@ interface NodeOption {
   option_text: string;
   next_node_id: string | null;
   option_order: number;
+}
+
+interface BotResponse {
+  message: string;
+  nextNodeId: string | null;
+  escalated: boolean;
+  listPayload?: ListMessagePayload;
+}
+
+interface ListMessagePayload {
+  title: string;
+  description: string;
+  buttonText: string;
+  footerText: string;
+  sections: Array<{
+    title: string;
+    rows: Array<{
+      title: string;
+      description: string;
+      rowId: string;
+    }>;
+  }>;
 }
 
 // Database connection pool for chatbot queries (bypass PostgREST)
@@ -81,9 +112,9 @@ async function dbQueryOne(sql: string, params: any[] = []) {
 // Chatbot helper functions using direct Postgres
 async function getDefaultFlowForWhatsapp(): Promise<{ id: string } | null> {
   return dbQueryOne(
-    `SELECT id FROM chatbot_flows 
-     WHERE is_default = true 
-     AND is_active = true 
+    `SELECT id FROM chatbot_flows
+     WHERE is_default = true
+     AND is_active = true
      AND channel IN ('all', 'whatsapp')
      LIMIT 1`
   );
@@ -91,9 +122,9 @@ async function getDefaultFlowForWhatsapp(): Promise<{ id: string } | null> {
 
 async function getEntryNode(flowId: string): Promise<ChatbotNode | null> {
   let node = await dbQueryOne(
-    `SELECT * FROM chatbot_nodes 
-     WHERE flow_id = $1 
-     AND is_entry_point = true 
+    `SELECT * FROM chatbot_nodes
+     WHERE flow_id = $1
+     AND is_entry_point = true
      AND is_active = true
      LIMIT 1`,
     [flowId]
@@ -102,9 +133,9 @@ async function getEntryNode(flowId: string): Promise<ChatbotNode | null> {
   // Fallback to first node by order
   if (!node) {
     node = await dbQueryOne(
-      `SELECT * FROM chatbot_nodes 
-       WHERE flow_id = $1 
-       AND is_active = true 
+      `SELECT * FROM chatbot_nodes
+       WHERE flow_id = $1
+       AND is_active = true
        ORDER BY node_order ASC
        LIMIT 1`,
       [flowId]
@@ -123,8 +154,8 @@ async function getNode(nodeId: string): Promise<ChatbotNode | null> {
 
 async function getNodeOptions(nodeId: string): Promise<NodeOption[]> {
   return dbQuery(
-    `SELECT * FROM chatbot_node_options 
-     WHERE node_id = $1 
+    `SELECT * FROM chatbot_node_options
+     WHERE node_id = $1
      ORDER BY option_order ASC`,
     [nodeId]
   ) as Promise<NodeOption[]>;
@@ -139,7 +170,6 @@ Deno.serve(async (req) => {
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const EVOLUTION_API_KEY = Deno.env.get("EVOLUTION_API_KEY");
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -157,10 +187,23 @@ Deno.serve(async (req) => {
     const remoteJid = payload.data.key.remoteJid;
     const phoneNumber = remoteJid.replace("@s.whatsapp.net", "").replace("@c.us", "");
     const customerName = payload.data.pushName || "Cliente";
+
+    // Extract message content — supports text, list response and button response
+    const msg = payload.data.message;
+    const listRowId = msg?.listResponseMessage?.singleSelectReply?.selectedRowId;
+    const buttonId = msg?.buttonsResponseMessage?.selectedButtonId;
     const messageContent =
-      payload.data.message?.conversation ||
-      payload.data.message?.extendedTextMessage?.text ||
+      listRowId ||
+      buttonId ||
+      msg?.conversation ||
+      msg?.extendedTextMessage?.text ||
       "";
+
+    // Human-readable label for saving to DB (list/button clicks show the title)
+    const messageLabel =
+      msg?.listResponseMessage?.title ||
+      msg?.buttonsResponseMessage?.selectedDisplayText ||
+      messageContent;
 
     console.log(`Message from ${phoneNumber} (${customerName}): ${messageContent}`);
 
@@ -206,21 +249,22 @@ Deno.serve(async (req) => {
       channel: "whatsapp",
       sender_type: "customer",
       sender_name: customerName,
-      content: messageContent,
+      content: messageLabel,
       metadata: { whatsapp_message_id: payload.data.key.id },
     });
 
     // Process chatbot logic (using direct Postgres)
-    const response = await processChatbotResponse(
-      conversation,
-      messageContent
-    );
+    const response = await processChatbotResponse(conversation, messageContent);
 
     // Send response via Evolution API
-    if (response.message) {
+    if (response.listPayload) {
+      await sendWhatsAppListMessage(phoneNumber, response.listPayload);
+    } else if (response.message) {
       await sendWhatsAppMessage(phoneNumber, response.message);
+    }
 
-      // Save bot response
+    // Save bot response
+    if (response.message) {
       await supabase.from("service_messages").insert({
         conversation_id: conversation.id,
         channel: "whatsapp",
@@ -252,7 +296,7 @@ Deno.serve(async (req) => {
       await supabase
         .from("service_queue")
         .update({
-          last_message: messageContent,
+          last_message: messageLabel,
           unread_count: (existingQueue.unread_count || 0) + 1,
           customer_name: customerName,
         })
@@ -265,7 +309,7 @@ Deno.serve(async (req) => {
         customer_name: customerName,
         customer_phone: phoneNumber,
         subject: "Atendimento WhatsApp",
-        last_message: messageContent,
+        last_message: messageLabel,
         unread_count: 1,
         whatsapp_conversation_id: conversation.id,
         waiting_since: new Date().toISOString(),
@@ -287,7 +331,7 @@ Deno.serve(async (req) => {
 async function processChatbotResponse(
   conversation: any,
   userMessage: string
-): Promise<{ message: string; nextNodeId: string | null; escalated: boolean }> {
+): Promise<BotResponse> {
   const currentNodeId = conversation.current_node_id;
 
   // If no current node, get the entry point of the default flow
@@ -328,22 +372,23 @@ async function processChatbotResponse(
 
   // Process based on node type
   if (currentNode.node_type === "menu") {
-    // Find selected option
+    // Find selected option — matches by key (rowId from list) or text
     const options = await getNodeOptions(currentNode.id);
 
-    const userChoice = userMessage.trim();
+    const userChoice = userMessage.trim().toLowerCase();
     const selectedOption = options?.find(
       (opt: NodeOption) =>
-        opt.option_key === userChoice ||
-        opt.option_text.toLowerCase().includes(userChoice.toLowerCase())
+        opt.option_key.toLowerCase() === userChoice ||
+        opt.option_text.toLowerCase().includes(userChoice)
     );
 
     if (!selectedOption) {
-      // Invalid option, repeat the menu
+      // Invalid option — resend the list message
+      const invalidResponse = await buildNodeResponse(currentNode);
       return {
-        message: `Opção inválida. Por favor, escolha uma das opções disponíveis.\n\n${currentNode.content}\n\n${formatOptions(options)}`,
+        ...invalidResponse,
+        message: `Opção não reconhecida. Por favor, selecione uma das opções abaixo. 👇\n\n${invalidResponse.message}`,
         nextNodeId: currentNodeId,
-        escalated: false,
       };
     }
 
@@ -405,10 +450,8 @@ async function processChatbotResponse(
   };
 }
 
-async function buildNodeResponse(
-  node: ChatbotNode
-): Promise<{ message: string; nextNodeId: string | null; escalated: boolean }> {
-  // Check if this is an action node
+async function buildNodeResponse(node: ChatbotNode): Promise<BotResponse> {
+  // Action node
   if (node.node_type === "action") {
     if (node.action_type === "escalate") {
       return {
@@ -427,26 +470,53 @@ async function buildNodeResponse(
     }
   }
 
-  let message = node.content || "";
-
-  // If menu, append options
+  // Menu node — build a WhatsApp List Message
   if (node.node_type === "menu") {
     const options = await getNodeOptions(node.id);
+    const nodeOptions = node.options || {};
 
-    if (options && options.length > 0) {
-      message += "\n\n" + formatOptions(options);
-    }
+    // Descriptions map: { "key": "description text" }
+    const descriptions: Record<string, string> = nodeOptions.descriptions || {};
+
+    const rows = (options || []).map((opt: NodeOption) => ({
+      rowId: opt.option_key,
+      title: opt.option_text,
+      description: descriptions[opt.option_key] || "",
+    }));
+
+    const listPayload: ListMessagePayload = {
+      title: node.content || "Como posso te ajudar?",
+      description: nodeOptions.subtitle || "",
+      buttonText: nodeOptions.buttonText || "Ver opções",
+      footerText: nodeOptions.footer || "MetaDesk Atendimento",
+      sections: [
+        {
+          title: nodeOptions.sectionTitle || "Opções",
+          rows,
+        },
+      ],
+    };
+
+    // Text fallback (saved to DB and used if list fails)
+    const textFallback =
+      (node.content || "") +
+      "\n\n" +
+      (options || []).map((opt: NodeOption) => `• ${opt.option_text}`).join("\n");
+
+    return {
+      message: textFallback,
+      nextNodeId: node.id,
+      escalated: false,
+      listPayload,
+    };
   }
 
+  // Message node
   return {
-    message,
+    message: node.content || "",
     nextNodeId: node.id,
     escalated: false,
   };
-}
-
-function formatOptions(options: NodeOption[]): string {
-  return options.map((opt) => `${opt.option_key}. ${opt.option_text}`).join("\n");
 }
 
 async function sendWhatsAppMessage(phoneNumber: string, text: string): Promise<void> {
@@ -480,9 +550,55 @@ async function sendWhatsAppMessage(phoneNumber: string, text: string): Promise<v
       const error = await response.text();
       console.error("Failed to send WhatsApp message:", error);
     } else {
-      console.log(`Message sent to ${phoneNumber}`);
+      console.log(`Text message sent to ${phoneNumber}`);
     }
   } catch (error) {
     console.error("Error sending WhatsApp message:", error);
+  }
+}
+
+async function sendWhatsAppListMessage(
+  phoneNumber: string,
+  payload: ListMessagePayload
+): Promise<void> {
+  const EVOLUTION_API_URL = Deno.env.get("EVOLUTION_API_URL");
+  const EVOLUTION_API_KEY = Deno.env.get("EVOLUTION_API_KEY");
+  const EVOLUTION_INSTANCE_NAME = Deno.env.get("EVOLUTION_INSTANCE_NAME");
+
+  if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY || !EVOLUTION_INSTANCE_NAME) {
+    console.error("Evolution API not configured");
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `${EVOLUTION_API_URL}/message/sendList/${EVOLUTION_INSTANCE_NAME}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: EVOLUTION_API_KEY,
+        },
+        body: JSON.stringify({
+          number: phoneNumber,
+          title: payload.title,
+          description: payload.description,
+          buttonText: payload.buttonText,
+          footerText: payload.footerText,
+          sections: payload.sections,
+          delay: 1000,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error("Failed to send WhatsApp list message:", error);
+      // Fallback: do nothing (caller already has text fallback saved to DB)
+    } else {
+      console.log(`List message sent to ${phoneNumber}`);
+    }
+  } catch (error) {
+    console.error("Error sending WhatsApp list message:", error);
   }
 }
