@@ -144,11 +144,13 @@ CREATE POLICY "Anon can read node options"
 -- TRIGGERS FOR UPDATED_AT
 -- =============================================
 
+DROP TRIGGER IF EXISTS update_chatbot_flows_updated_at ON public.chatbot_flows;
 CREATE TRIGGER update_chatbot_flows_updated_at
   BEFORE UPDATE ON public.chatbot_flows
   FOR EACH ROW
   EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_chatbot_nodes_updated_at ON public.chatbot_nodes;
 CREATE TRIGGER update_chatbot_nodes_updated_at
   BEFORE UPDATE ON public.chatbot_nodes
   FOR EACH ROW
