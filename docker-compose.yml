@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: evolution
+      POSTGRES_PASSWORD: evolution123
+      POSTGRES_DB: evolution
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U evolution -d evolution"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  evolution-api:
+    image: atendai/evolution-api:latest
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: "postgresql://evolution:evolution123@postgres:5432/evolution"
+      DATABASE_URL: "postgresql://evolution:evolution123@postgres:5432/evolution"
+      AUTHENTICATION_TYPE: apikey
+      AUTHENTICATION_API_KEY: "minha-chave-secreta-123"
+      SERVER_TYPE: http
+      SERVER_PORT: 8080
+      CORS_ORIGIN: "*"
+      WEBHOOK_GLOBAL_ENABLED: "false"
+      LOG_LEVEL: ERROR
+      LOG_COLOR: "true"
+      LOG_BAILEYS: error
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
