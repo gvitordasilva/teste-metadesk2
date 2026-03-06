@@ -62,23 +62,24 @@ BEGIN
   );
 
   -- =============================================
-  -- NÓS
+  -- PASSO 1: Inserir TODOS os nós com next_node_id = null
+  -- (evita violação da FK auto-referencial)
   -- =============================================
 
-  -- 1. Boas-vindas (entry point — message)
   INSERT INTO public.chatbot_nodes
     (id, flow_id, node_type, name, content, options, action_type, next_node_id, node_order, is_entry_point, is_active)
-  VALUES (
+  VALUES
+
+  -- Boas-vindas (entry point)
+  (
     n_boas_vindas, flow_id, 'message', 'Boas-vindas',
     'Olá! 👋 Seja bem-vindo(a) ao *MetaDesk*.' || chr(10) ||
     'Estamos aqui para te ajudar com o que precisar. 😊',
-    '{}', 'none', n_menu_main, 1, true, true
-  );
+    '{}', 'none', null, 1, true, true
+  ),
 
-  -- 2. Menu Principal (menu — List Message)
-  INSERT INTO public.chatbot_nodes
-    (id, flow_id, node_type, name, content, options, action_type, next_node_id, node_order, is_entry_point, is_active)
-  VALUES (
+  -- Menu Principal
+  (
     n_menu_main, flow_id, 'menu', 'Menu Principal',
     'Como posso te ajudar hoje?',
     jsonb_build_object(
@@ -96,16 +97,10 @@ BEGIN
       )
     ),
     'none', null, 2, false, true
-  );
+  ),
 
-  -- =============================================
-  -- SUB-MENU: FINANCEIRO
-  -- =============================================
-
-  -- 3. Menu Financeiro
-  INSERT INTO public.chatbot_nodes
-    (id, flow_id, node_type, name, content, options, action_type, next_node_id, node_order, is_entry_point, is_active)
-  VALUES (
+  -- Menu Financeiro
+  (
     n_financeiro, flow_id, 'menu', 'Menu Financeiro',
     'Entendido! 💳 Qual é a sua necessidade financeira?',
     jsonb_build_object(
@@ -120,46 +115,34 @@ BEGIN
       )
     ),
     'none', null, 10, false, true
-  );
+  ),
 
-  -- 4. Ação: Emitir 2ª Via
-  INSERT INTO public.chatbot_nodes
-    (id, flow_id, node_type, name, content, options, action_type, next_node_id, node_order, is_entry_point, is_active)
-  VALUES (
+  -- Ação: Emitir 2ª Via
+  (
     n_fin_2via, flow_id, 'action', 'Emitir 2ª Via',
     'Entendido! 🧾 Vou te conectar com nossa equipe financeira para emitir a 2ª via.' || chr(10) ||
     'Um momento, por favor... ⏳',
     '{}', 'escalate', null, 11, false, true
-  );
+  ),
 
-  -- 5. Ação: Negociar Dívida
-  INSERT INTO public.chatbot_nodes
-    (id, flow_id, node_type, name, content, options, action_type, next_node_id, node_order, is_entry_point, is_active)
-  VALUES (
+  -- Ação: Negociar Dívida
+  (
     n_fin_negoc, flow_id, 'action', 'Negociar Dívida',
     'Certo! 🤝 Vou encaminhar você para nosso especialista em negociação.' || chr(10) ||
     'Aguarde um instante... ⏳',
     '{}', 'escalate', null, 12, false, true
-  );
+  ),
 
-  -- 6. Ação: Confirmar Pagamento
-  INSERT INTO public.chatbot_nodes
-    (id, flow_id, node_type, name, content, options, action_type, next_node_id, node_order, is_entry_point, is_active)
-  VALUES (
+  -- Ação: Confirmar Pagamento
+  (
     n_fin_pgto, flow_id, 'action', 'Confirmar Pagamento',
     'Perfeito! ✅ Nossa equipe vai verificar e confirmar seu pagamento.' || chr(10) ||
     'Um momento... ⏳',
     '{}', 'escalate', null, 13, false, true
-  );
+  ),
 
-  -- =============================================
-  -- SUB-MENU: SUPORTE TÉCNICO
-  -- =============================================
-
-  -- 7. Menu Suporte
-  INSERT INTO public.chatbot_nodes
-    (id, flow_id, node_type, name, content, options, action_type, next_node_id, node_order, is_entry_point, is_active)
-  VALUES (
+  -- Menu Suporte Técnico
+  (
     n_suporte, flow_id, 'menu', 'Menu Suporte Técnico',
     'Que problema você está enfrentando? 🛠️',
     jsonb_build_object(
@@ -175,12 +158,9 @@ BEGIN
       )
     ),
     'none', null, 20, false, true
-  );
+  ),
 
-  -- 8-11. Ações de Suporte
-  INSERT INTO public.chatbot_nodes
-    (id, flow_id, node_type, name, content, options, action_type, next_node_id, node_order, is_entry_point, is_active)
-  VALUES
+  -- Ações de Suporte
   (
     n_sup_acesso, flow_id, 'action', 'Suporte - Acesso',
     '🔐 Vou te conectar com nosso suporte técnico agora.' || chr(10) ||
@@ -204,28 +184,18 @@ BEGIN
     '🔧 Nossa equipe técnica está pronta para te ajudar.' || chr(10) ||
     'Um atendente estará com você em breve. Aguarde... ⏳',
     '{}', 'escalate', null, 24, false, true
-  );
+  ),
 
-  -- =============================================
-  -- PEDIDOS
-  -- =============================================
-
-  INSERT INTO public.chatbot_nodes
-    (id, flow_id, node_type, name, content, options, action_type, next_node_id, node_order, is_entry_point, is_active)
-  VALUES (
+  -- Pedido
+  (
     n_pedido, flow_id, 'action', 'Meu Pedido',
     '📦 Vou verificar as informações do seu pedido com nossa equipe.' || chr(10) ||
     'Um momento, por favor... ⏳',
     '{}', 'escalate', null, 30, false, true
-  );
+  ),
 
-  -- =============================================
-  -- SUB-MENU: INFORMAÇÕES
-  -- =============================================
-
-  INSERT INTO public.chatbot_nodes
-    (id, flow_id, node_type, name, content, options, action_type, next_node_id, node_order, is_entry_point, is_active)
-  VALUES (
+  -- Menu Informações
+  (
     n_info, flow_id, 'menu', 'Menu Informações',
     'Que tipo de informação você precisa? 📋',
     jsonb_build_object(
@@ -233,71 +203,55 @@ BEGIN
       'sectionTitle', 'Informações',
       'footer',       'MetaDesk Atendimento',
       'descriptions', jsonb_build_object(
-        'planos',   'Conheça nossos planos e funcionalidades',
-        'preco',    'Tabela de preços e condições especiais',
-        'contato',  'Telefone, e-mail e redes sociais',
-        'voltar',   'Retornar ao menu principal'
+        'planos',  'Conheça nossos planos e funcionalidades',
+        'preco',   'Tabela de preços e condições especiais',
+        'contato', 'Telefone, e-mail e redes sociais',
+        'voltar',  'Retornar ao menu principal'
       )
     ),
     'none', null, 40, false, true
-  );
+  ),
 
   -- Info: Planos
-  INSERT INTO public.chatbot_nodes
-    (id, flow_id, node_type, name, content, options, action_type, next_node_id, node_order, is_entry_point, is_active)
-  VALUES (
+  (
     n_info_planos, flow_id, 'message', 'Info - Planos',
     '📋 *Nossos Planos:*' || chr(10) || chr(10) ||
     '• *Básico* – Ideal para pequenas equipes' || chr(10) ||
     '• *Profissional* – Para equipes em crescimento' || chr(10) ||
     '• *Enterprise* – Solução completa para grandes empresas' || chr(10) || chr(10) ||
     'Para contratar ou saber mais detalhes, posso te conectar com um consultor! 😊',
-    '{}', 'none', n_atendente, 41, false, true
-  );
+    '{}', 'none', null, 41, false, true
+  ),
 
   -- Info: Preços
-  INSERT INTO public.chatbot_nodes
-    (id, flow_id, node_type, name, content, options, action_type, next_node_id, node_order, is_entry_point, is_active)
-  VALUES (
+  (
     n_info_preco, flow_id, 'message', 'Info - Preços',
     '💰 *Tabela de Preços:*' || chr(10) || chr(10) ||
     'Nossos valores são personalizados de acordo com o porte e necessidades da sua empresa.' || chr(10) || chr(10) ||
     'Para receber uma *proposta personalizada*, vou te conectar com um de nossos consultores! 😊',
-    '{}', 'none', n_atendente, 42, false, true
-  );
+    '{}', 'none', null, 42, false, true
+  ),
 
   -- Info: Contato
-  INSERT INTO public.chatbot_nodes
-    (id, flow_id, node_type, name, content, options, action_type, next_node_id, node_order, is_entry_point, is_active)
-  VALUES (
+  (
     n_info_cont, flow_id, 'message', 'Info - Contato',
     '📞 *Nossos Canais de Atendimento:*' || chr(10) || chr(10) ||
     '• WhatsApp: Este canal 😊' || chr(10) ||
     '• Horário: Segunda a Sexta, das 8h às 18h' || chr(10) || chr(10) ||
     'Posso te ajudar com mais alguma coisa?',
-    '{}', 'none', n_menu_main, 43, false, true
-  );
+    '{}', 'none', null, 43, false, true
+  ),
 
-  -- =============================================
-  -- MINHA CONTA
-  -- =============================================
-
-  INSERT INTO public.chatbot_nodes
-    (id, flow_id, node_type, name, content, options, action_type, next_node_id, node_order, is_entry_point, is_active)
-  VALUES (
+  -- Minha Conta
+  (
     n_conta, flow_id, 'action', 'Minha Conta',
     '👤 Vou te conectar com nossa equipe para te ajudar com sua conta.' || chr(10) ||
     'Um momento... ⏳',
     '{}', 'escalate', null, 50, false, true
-  );
+  ),
 
-  -- =============================================
-  -- FALAR COM ATENDENTE (escalate direto)
-  -- =============================================
-
-  INSERT INTO public.chatbot_nodes
-    (id, flow_id, node_type, name, content, options, action_type, next_node_id, node_order, is_entry_point, is_active)
-  VALUES (
+  -- Falar com Atendente
+  (
     n_atendente, flow_id, 'action', 'Falar com Atendente',
     '💬 Claro! Aguarde um momento enquanto te conectamos com um de nossos atendentes.' || chr(10) ||
     'Em breve alguém estará aqui para te ajudar! 😊',
@@ -305,35 +259,42 @@ BEGIN
   );
 
   -- =============================================
-  -- OPÇÕES DO MENU PRINCIPAL
+  -- PASSO 2: Atualizar next_node_id após todos os nós existirem
   -- =============================================
 
+  -- Boas-vindas → Menu Principal
+  UPDATE public.chatbot_nodes SET next_node_id = n_menu_main   WHERE id = n_boas_vindas;
+
+  -- Info: Planos e Preços → Atendente; Info: Contato → Menu Principal
+  UPDATE public.chatbot_nodes SET next_node_id = n_atendente   WHERE id = n_info_planos;
+  UPDATE public.chatbot_nodes SET next_node_id = n_atendente   WHERE id = n_info_preco;
+  UPDATE public.chatbot_nodes SET next_node_id = n_menu_main   WHERE id = n_info_cont;
+
+  -- =============================================
+  -- PASSO 3: Inserir opções dos menus
+  -- =============================================
+
+  -- Menu Principal
   INSERT INTO public.chatbot_node_options
     (node_id, option_key, option_text, next_node_id, option_order)
   VALUES
-    (n_menu_main, 'financeiro',  '💳 Financeiro',            n_financeiro, 1),
-    (n_menu_main, 'suporte',     '🛠️ Suporte Técnico',       n_suporte,    2),
-    (n_menu_main, 'pedido',      '📦 Meu Pedido',             n_pedido,     3),
-    (n_menu_main, 'informacoes', '📋 Informações',            n_info,       4),
-    (n_menu_main, 'conta',       '👤 Minha Conta',            n_conta,      5),
-    (n_menu_main, 'atendente',   '💬 Falar com Atendente',   n_atendente,  6);
+    (n_menu_main, 'financeiro',  '💳 Financeiro',           n_financeiro, 1),
+    (n_menu_main, 'suporte',     '🛠️ Suporte Técnico',      n_suporte,    2),
+    (n_menu_main, 'pedido',      '📦 Meu Pedido',            n_pedido,     3),
+    (n_menu_main, 'informacoes', '📋 Informações',           n_info,       4),
+    (n_menu_main, 'conta',       '👤 Minha Conta',           n_conta,      5),
+    (n_menu_main, 'atendente',   '💬 Falar com Atendente',  n_atendente,  6);
 
-  -- =============================================
-  -- OPÇÕES DO MENU FINANCEIRO
-  -- =============================================
-
+  -- Menu Financeiro
   INSERT INTO public.chatbot_node_options
     (node_id, option_key, option_text, next_node_id, option_order)
   VALUES
-    (n_financeiro, '2via',     '🧾 2ª Via de Boleto',     n_fin_2via,  1),
-    (n_financeiro, 'negociar', '🤝 Negociar Dívida',      n_fin_negoc, 2),
-    (n_financeiro, 'confirmar','✅ Confirmar Pagamento',   n_fin_pgto,  3),
-    (n_financeiro, 'voltar',   '↩️ Voltar ao Menu',        n_menu_main, 4);
+    (n_financeiro, '2via',     '🧾 2ª Via de Boleto',    n_fin_2via,  1),
+    (n_financeiro, 'negociar', '🤝 Negociar Dívida',     n_fin_negoc, 2),
+    (n_financeiro, 'confirmar','✅ Confirmar Pagamento',  n_fin_pgto,  3),
+    (n_financeiro, 'voltar',   '↩️ Voltar ao Menu',       n_menu_main, 4);
 
-  -- =============================================
-  -- OPÇÕES DO MENU SUPORTE
-  -- =============================================
-
+  -- Menu Suporte
   INSERT INTO public.chatbot_node_options
     (node_id, option_key, option_text, next_node_id, option_order)
   VALUES
@@ -343,16 +304,13 @@ BEGIN
     (n_suporte, 'outro_suporte', '❓ Outro Problema',       n_sup_outro,  4),
     (n_suporte, 'voltar',        '↩️ Voltar ao Menu',       n_menu_main,  5);
 
-  -- =============================================
-  -- OPÇÕES DO MENU INFORMAÇÕES
-  -- =============================================
-
+  -- Menu Informações
   INSERT INTO public.chatbot_node_options
     (node_id, option_key, option_text, next_node_id, option_order)
   VALUES
-    (n_info, 'planos',  '📋 Planos Disponíveis',  n_info_planos, 1),
-    (n_info, 'preco',   '💰 Preços e Valores',     n_info_preco,  2),
-    (n_info, 'contato', '📞 Canais de Contato',    n_info_cont,   3),
-    (n_info, 'voltar',  '↩️ Voltar ao Menu',        n_menu_main,   4);
+    (n_info, 'planos',  '📋 Planos Disponíveis', n_info_planos, 1),
+    (n_info, 'preco',   '💰 Preços e Valores',    n_info_preco,  2),
+    (n_info, 'contato', '📞 Canais de Contato',   n_info_cont,   3),
+    (n_info, 'voltar',  '↩️ Voltar ao Menu',       n_menu_main,   4);
 
 END $$;
