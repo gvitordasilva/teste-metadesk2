@@ -1,5 +1,5 @@
 -- Tabela central para fila de atendimento unificada
-CREATE TABLE public.service_queue (
+CREATE TABLE IF NOT EXISTS public.service_queue (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   channel TEXT NOT NULL CHECK (channel IN ('web', 'voice', 'whatsapp', 'email', 'chat')),
   status TEXT NOT NULL DEFAULT 'waiting' CHECK (status IN ('waiting', 'in_progress', 'completed', 'forwarded')),

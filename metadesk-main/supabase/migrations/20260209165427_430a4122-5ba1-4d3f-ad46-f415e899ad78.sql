@@ -1,6 +1,6 @@
 
 -- Tabela de auditoria para rastrear todas as alterações em solicitações
-CREATE TABLE public.complaint_audit_log (
+CREATE TABLE IF NOT EXISTS public.complaint_audit_log (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   complaint_id UUID NOT NULL REFERENCES public.complaints(id) ON DELETE CASCADE,
   user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,

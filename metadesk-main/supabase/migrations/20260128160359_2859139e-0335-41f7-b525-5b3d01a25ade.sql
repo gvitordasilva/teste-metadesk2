@@ -3,7 +3,7 @@
 -- =============================================
 
 -- 1. Tabela de Mensagens Pré-definidas (Quick Messages)
-CREATE TABLE public.quick_messages (
+CREATE TABLE IF NOT EXISTS public.quick_messages (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   title TEXT NOT NULL,
   content TEXT NOT NULL,
@@ -33,7 +33,7 @@ CREATE TRIGGER update_quick_messages_updated_at
   EXECUTE FUNCTION public.update_updated_at_column();
 
 -- 2. Tabela de Sessões de Atendimento
-CREATE TABLE public.service_sessions (
+CREATE TABLE IF NOT EXISTS public.service_sessions (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   complaint_id UUID REFERENCES public.complaints(id) ON DELETE SET NULL,
   conversation_id TEXT,
@@ -72,7 +72,7 @@ CREATE TRIGGER update_service_sessions_updated_at
   EXECUTE FUNCTION public.update_updated_at_column();
 
 -- 3. Tabela de Mensagens da Sessão
-CREATE TABLE public.service_messages (
+CREATE TABLE IF NOT EXISTS public.service_messages (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   session_id UUID NOT NULL REFERENCES public.service_sessions(id) ON DELETE CASCADE,
   sender_type TEXT NOT NULL CHECK (sender_type IN ('client', 'agent', 'system')),

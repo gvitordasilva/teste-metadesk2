@@ -1,6 +1,6 @@
 
 -- Tabela de campanhas
-CREATE TABLE public.campaigns (
+CREATE TABLE IF NOT EXISTS public.campaigns (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
   description TEXT,
@@ -48,7 +48,7 @@ CREATE TRIGGER update_campaigns_updated_at
   EXECUTE FUNCTION public.update_updated_at_column();
 
 -- Tabela de log de envios individuais
-CREATE TABLE public.campaign_sends (
+CREATE TABLE IF NOT EXISTS public.campaign_sends (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   campaign_id UUID NOT NULL REFERENCES public.campaigns(id) ON DELETE CASCADE,
   recipient_name TEXT,

@@ -1,6 +1,6 @@
 
 -- Tabela de respostas NPS
-CREATE TABLE public.nps_responses (
+CREATE TABLE IF NOT EXISTS public.nps_responses (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   complaint_id uuid REFERENCES public.complaints(id) ON DELETE SET NULL,
   session_id uuid REFERENCES public.service_sessions(id) ON DELETE SET NULL,

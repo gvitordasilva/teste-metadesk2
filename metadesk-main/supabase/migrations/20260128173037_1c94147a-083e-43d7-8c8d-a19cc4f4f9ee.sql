@@ -3,7 +3,7 @@
 -- =============================================
 
 -- 1. Chatbot Flows - Main flow container
-CREATE TABLE public.chatbot_flows (
+CREATE TABLE IF NOT EXISTS public.chatbot_flows (
   id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   name text NOT NULL,
   description text,
@@ -15,7 +15,7 @@ CREATE TABLE public.chatbot_flows (
 );
 
 -- 2. Chatbot Nodes - Individual nodes in the decision tree
-CREATE TABLE public.chatbot_nodes (
+CREATE TABLE IF NOT EXISTS public.chatbot_nodes (
   id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   flow_id uuid NOT NULL REFERENCES public.chatbot_flows(id) ON DELETE CASCADE,
   node_type text NOT NULL CHECK (node_type IN ('message', 'menu', 'input', 'action', 'condition')),
@@ -38,7 +38,7 @@ ADD CONSTRAINT chatbot_nodes_next_node_fk
 FOREIGN KEY (next_node_id) REFERENCES public.chatbot_nodes(id) ON DELETE SET NULL;
 
 -- 3. Chatbot Node Options - Menu options for navigation
-CREATE TABLE public.chatbot_node_options (
+CREATE TABLE IF NOT EXISTS public.chatbot_node_options (
   id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   node_id uuid NOT NULL REFERENCES public.chatbot_nodes(id) ON DELETE CASCADE,
   option_key text NOT NULL,

@@ -1,6 +1,6 @@
 
 -- Table to store connected email accounts (SMTP or OAuth)
-CREATE TABLE public.email_accounts (
+CREATE TABLE IF NOT EXISTS public.email_accounts (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
   account_type text NOT NULL DEFAULT 'smtp', -- 'smtp', 'gmail_oauth', 'outlook_oauth'
@@ -40,7 +40,7 @@ CREATE POLICY "Admins can view all email accounts"
   USING (has_role(auth.uid(), 'admin'::app_role));
 
 -- Table to store email messages linked to complaints
-CREATE TABLE public.email_messages (
+CREATE TABLE IF NOT EXISTS public.email_messages (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   complaint_id uuid NOT NULL REFERENCES public.complaints(id) ON DELETE CASCADE,
   email_account_id uuid REFERENCES public.email_accounts(id) ON DELETE SET NULL,

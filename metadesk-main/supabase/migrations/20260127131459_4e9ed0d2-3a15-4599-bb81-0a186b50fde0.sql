@@ -1,5 +1,5 @@
 -- Criar tabela de reclamações e denúncias
-CREATE TABLE public.complaints (
+CREATE TABLE IF NOT EXISTS public.complaints (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   protocol_number TEXT NOT NULL UNIQUE,
   is_anonymous BOOLEAN NOT NULL DEFAULT false,
